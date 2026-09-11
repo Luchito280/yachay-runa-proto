@@ -195,14 +195,17 @@
             { id: 'tumi', name: 'Tumi Mágico', region: 'sierra', tier: 1, cost: 15, icon: '🗿', desc: 'Cuchillo ceremonial inca. Símbolo de sanación.' },
             { id: 'chakana', name: 'Chakana', region: 'sierra', tier: 2, cost: 25, icon: '💠', desc: 'Cruz Andina. Conecta los tres mundos incas.' },
             { id: 'quipu', name: 'Quipu', region: 'sierra', tier: 3, cost: 30, icon: '🧶', desc: 'Sistema de cuerdas y nudos para contabilidad.' },
+            { id: 'kero', name: 'Kero Andino', region: 'sierra', tier: 4, cost: 40, icon: '🥤', desc: 'Vaso ceremonial de madera decorado con arte geométrico.' },
             
             { id: 'huaco', name: 'Huaco Moche', region: 'costa', tier: 1, cost: 15, icon: '🏺', desc: 'Vasija retrato hiperrealista de la costa norte.' },
             { id: 'cuchimilco', name: 'Cuchimilco', region: 'costa', tier: 2, cost: 25, icon: '🧍', desc: 'Estatuilla Chancay con los brazos abiertos.' },
             { id: 'sican', name: 'Máscara Sicán', region: 'costa', tier: 3, cost: 30, icon: '🎭', desc: 'Máscara de oro puro del señor de Sipán/Sicán.' },
+            { id: 'totora', name: 'Caballito Totora', region: 'costa', tier: 4, cost: 40, icon: '🛶', desc: 'Embarcación tradicional milenaria de los pescadores.' },
             
             { id: 'kene', name: 'Diseño Kené', region: 'selva', tier: 1, cost: 15, icon: '🌀', desc: 'Patrón geométrico Shipibo que representa ríos.' },
             { id: 'corona', name: 'Corona Plumas', region: 'selva', tier: 2, cost: 25, icon: '👑', desc: 'Tocado ceremonial Asháninka.' },
-            { id: 'pucuna', name: 'Pucuna', region: 'selva', tier: 3, cost: 30, icon: '🎋', desc: 'Zarbatana tradicional para caza silenciosa.' }
+            { id: 'pucuna', name: 'Pucuna', region: 'selva', tier: 3, cost: 30, icon: '🎋', desc: 'Zarbatana tradicional para caza silenciosa.' },
+            { id: 'shipibo', name: 'Cerámica Awajún', region: 'selva', tier: 4, cost: 40, icon: '🥣', desc: 'Arte en arcilla que refleja la cosmovisión amazónica.' }
         ];
 
         const GameState = {
@@ -271,6 +274,14 @@
                 };
             },
             
+            // Función para borrar datos agregada aquí
+            resetData() {
+                if(confirm('¿Estás seguro de que quieres borrar todo tu progreso, estrellas y artefactos?')) {
+                    localStorage.clear();
+                    location.reload(); // Recarga la página y vuelve al inicio
+                }
+            },
+
             showRegionSelector() {
                 clearInterval(this.timerInterval);
                 this.container.innerHTML = `
@@ -279,6 +290,7 @@
                             <span class="text-yellow-400 font-bold">⭐ ${GameState.stars}</span>
                             <span class="text-slate-300 text-sm">| ${GameState.name}</span>
                         </div>
+                        
                         <h2 class="text-3xl font-bold mb-8 mt-12 md:mt-0">Elige tu Región</h2>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
                             <button onclick="App.showMap('costa')" class="bg-gradient-to-br from-orange-500 to-red-600 p-8 rounded-2xl shadow-lg hover:scale-105 transition-transform text-left group">
@@ -296,6 +308,11 @@
                         </div>
                         <button onclick="App.startLevel('popquiz')" class="mt-12 bg-gradient-to-r from-purple-600 to-pink-600 py-4 px-12 rounded-full shadow-[0_0_30px_rgba(168,85,247,0.5)] font-bold text-xl hover:scale-110 transition-transform animate-pulse border-2 border-pink-400">
                             🔥 POP QUIZ ÉPICO 🔥
+                        </button>
+                        
+                        <!-- Botón de Borrar Datos en la esquina inferior derecha -->
+                        <button onclick="App.resetData()" class="absolute bottom-6 right-6 bg-red-950/80 hover:bg-red-800 text-red-300 font-bold py-3 px-5 rounded-xl border border-red-700 shadow-[0_0_15px_rgba(220,38,38,0.3)] transition-all hover:scale-105 flex items-center gap-2 z-50 backdrop-blur">
+                            <span class="text-lg">🗑️</span> Borrar Datos
                         </button>
                     </div>
                 `;
