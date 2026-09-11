@@ -18,16 +18,13 @@
         @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
         @keyframes shakeError { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
 
-        /* Mapas y Vistas */
         .map-viewport { overflow: hidden; cursor: grab; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
         .map-viewport:active { cursor: grabbing; }
         .map-content { touch-action: none; transition: transform 0.1s ease-out; }
         
-        /* Tooltips para la Tienda */
         .tooltip-container:hover .tooltip { display: block; }
         .tooltip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); z-index: 50; width: max-content; max-width: 200px; }
 
-        /* Temas Pop Quiz Especiales */
         .theme-debugger { font-family: 'Fira Code', monospace; background-color: #020617; border: 2px solid #10b981; color: #34d399; }
         .theme-debugger h3 { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
         .theme-debugger .opt-btn { background-color: #064e3b; border-color: #047857; color: #a7f3d0; }
@@ -384,9 +381,9 @@
                 this.correctCount = 0;
                 
                 let db = [...QuestionDB[levelId]];
-                this.shuffle(db); // Real randomness
+                this.shuffle(db); 
                 
-                let limit = levelId === 'popquiz' ? 10 : 8; // Pop Quiz limits strictly to 10!
+                let limit = levelId === 'popquiz' ? 10 : 8; 
                 if(db.length > limit) db = db.slice(0, limit);
                 
                 this.missionQueue = db;
@@ -419,7 +416,6 @@
                 
                 let html = `
                     <div class="flex-1 flex flex-col h-full w-full bg-slate-900 slide-up ${themeClass} relative">
-                        <!-- Top Navigation & Progress Bar -->
                         <div class="w-full flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur z-50 shadow-sm border-b border-slate-800">
                             <button onclick="${exitAction}" class="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors font-bold text-xl">✕</button>
                             
@@ -479,7 +475,6 @@
                 const f = document.getElementById('feedback');
                 const next = document.getElementById('btn-next');
                 
-                // Escudo protector: Si la vista ya se destruyó, detiene la función sin causar errores.
                 if (!f || !next) return;
                 
                 f.classList.remove('hidden');
@@ -502,7 +497,7 @@
                     f.className = "mt-8 w-full text-center font-bold text-lg px-6 py-4 rounded-xl shadow-lg bg-red-900/40 text-red-400 border border-red-500 block pop-in";
                     
                     const q = this.missionQueue.shift();
-                    this.missionQueue.push(q); // Spaced Repetition -> Goes to back of queue
+                    this.missionQueue.push(q);
                     
                     next.onclick = () => this.showNextQuestion();
                 }
@@ -512,7 +507,6 @@
                 let starsEarned = 0;
                 
                 if (this.currentLevel === 'popquiz') {
-                    // Because they finished, correctCount always equals totalQuestions (10). 10 * 2 = 20 stars!
                     starsEarned = this.totalQuestions * 2; 
                 } else {
                     starsEarned = 50;
@@ -548,7 +542,6 @@
             }
         };
 
-        // Iniciar App
         App.init();
     </script>
 </body>
