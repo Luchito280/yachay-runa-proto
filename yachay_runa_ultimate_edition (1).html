@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yachay Runa - Ultimate Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Fira+Code:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; user-select: none; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .pop-in { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .shake-error { animation: shakeError 0.4s ease-in-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+        @keyframes shakeError { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+
+        /* Mapas y Vistas */
+        .map-viewport { overflow: hidden; cursor: grab; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
+        .map-viewport:active { cursor: grabbing; }
+        .map-content { touch-action: none; transition: transform 0.1s ease-out; }
+        
+        /* Tooltips para la Tienda */
+        .tooltip-container:hover .tooltip { display: block; }
+        .tooltip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); z-index: 50; width: max-content; max-width: 200px; }
+
+        /* Temas Pop Quiz Especiales */
+        .theme-debugger { font-family: 'Fira Code', monospace; background-color: #020617; border: 2px solid #10b981; color: #34d399; }
+        .theme-debugger h3 { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+        .theme-debugger .opt-btn { background-color: #064e3b; border-color: #047857; color: #a7f3d0; }
+        
+        .theme-boss { background: radial-gradient(circle at top, #450a0a 0%, #2e1065 100%); border: 3px solid #dc2626; }
+        .theme-boss h3 { color: #fca5a5; font-weight: 800; text-transform: uppercase; }
+        .theme-boss .opt-btn { background-color: #7f1d1d; border-color: #b91c1c; font-weight: bold; }
+        
+        .theme-speedrun { border-top: 5px solid #06b6d4; }
+        
+        .theme-gacha { background: linear-gradient(135deg, #422006 0%, #713f12 100%); border: 2px solid #eab308; }
+        .theme-gacha .opt-btn { background: linear-gradient(to bottom, #ca8a04, #a16207); border-color: #facc15; }
+        
+        .theme-dialogue { background-color: #0f172a; }
+        .chat-bubble { background-color: #1e293b; border-radius: 20px 20px 20px 0; border-left: 4px solid #3b82f6; }
+        
+        .timer-bar { transition: width 1s linear; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-50 w-screen h-screen overflow-hidden flex flex-col selection:bg-emerald-500 selection:text-white">
+    <div id="app" class="w-full h-full relative"></div>
+
+    <script>
+        const QuestionDB = {
+            sierra1: [
+                { prompt: '¿Cómo se dice "Hola" (saludo general) en quechua?', options: ['Tupananchiskama', 'Napaykullayki', 'Allin p\'unchaw', 'Añay'], correct: 'Napaykullayki' },
+                { prompt: 'Relaciona el saludo "Allin p\'unchaw" con su significado.', options: ['Buenas tardes', 'Buenos días', 'Buenas noches', 'Hola'], correct: 'Buenos días' },
+                { prompt: '¿Qué significa la expresión "Tupananchiskama"?', options: ['Gracias', 'Por favor', 'Hasta que nos volvamos a encontrar', 'Bienvenido'], correct: 'Hasta que nos volvamos a encontrar' },
+                { prompt: 'Traduce esta frase al español: "Allin tuta"', options: ['Buenas noches', 'Buenos días', 'Buenas tardes', 'Adiós'], correct: 'Buenas noches' },
+                { prompt: '¿Cuáles de las siguientes opciones significan "Gracias" en quechua?', options: ['Añay', 'Arí', 'Manan', 'Yaku'], correct: 'Añay' },
+                { prompt: '¿Cuál es el pronombre correcto para decir "Yo"?', options: ['Qam', 'Pay', 'Ñuqa', 'Ñuqanchik'], correct: 'Ñuqa' },
+                { prompt: 'El pronombre "____" se utiliza para decir "Tú" en quechua.', options: ['Pay', 'Qam', 'Ñuqa', 'Arí'], correct: 'Qam' },
+                { prompt: '¿Qué significa el pronombre "Pay"?', options: ['Nosotros', 'Él / Ella', 'Ustedes', 'Ellos / Ellas'], correct: 'Él / Ella' },
+                { prompt: 'Une el número en quechua "Kimsa" con su valor.', options: ['Dos', 'Tres', 'Uno', 'Cuatro'], correct: 'Tres' },
+                { prompt: 'Si tienes "Tawa" manzanas, ¿cuántas manzanas tienes?', options: ['3', '4', '5', '6'], correct: '4' },
+                { prompt: '¿Cómo se escribe el número "Cinco" en quechua?', options: ['Iskay', 'Kimsa', 'Tawa', 'Pisqa'], correct: 'Pisqa' },
+                { prompt: '¿Cómo se le dice a la "Mamá" en quechua?', options: ['Tayta', 'Wawa', 'Mama', 'Warmi'], correct: 'Mama' },
+                { prompt: '¿Qué significa la palabra "Tayta"?', options: ['Hermano', 'Padre / Señor', 'Abuelo', 'Hijo'], correct: 'Padre / Señor' },
+                { prompt: 'A un bebé o niño pequeño se le dice con cariño "____" en quechua.', options: ['Allqu', 'Wawa', 'Tayta', 'Michi'], correct: 'Wawa' },
+                { prompt: 'Relaciona el género "Warmi" con su traducción.', options: ['Hombre', 'Mujer', 'Niño', 'Anciano'], correct: 'Mujer' },
+                { prompt: '¿Qué animal es un "Allqu"?', options: ['Gato', 'Perro', 'Llama', 'Cuy'], correct: 'Perro' },
+                { prompt: 'Traduce la palabra "Gato" al quechua.', options: ['Michi', 'Allqu', 'Yaku', 'Inti'], correct: 'Michi' },
+                { prompt: '¿Qué significa la palabra "Inti"?', options: ['Luna', 'Tierra', 'Sol', 'Estrella'], correct: 'Sol' },
+                { prompt: '¿Cómo se dice "Agua" en quechua?', options: ['Yaku', 'Para', 'Mayu', 'Urqu'], correct: 'Yaku' },
+                { prompt: 'La palabra "Killa" significa "Luna" o "Mes".', options: ['Verdadero', 'Falso'], correct: 'Verdadero' }
+            ],
+            sierra2: [
+                { prompt: 'Relaciona el verbo en quechua "Mikhuy" con su significado.', options: ['Dormir', 'Comer', 'Beber / Tomar', 'Caminar'], correct: 'Comer' },
+                { prompt: '¿Cómo se dice el verbo "Trabajar" en quechua?', options: ['Puriy', 'Llank\'ay', 'Tasiy', 'Munay'], correct: 'Llank\'ay' },
+                { prompt: 'El verbo "Munay" significa:', options: ['Correr', 'Escribir', 'Querer / Amar', 'Cantar'], correct: 'Querer / Amar' },
+                { prompt: 'Traduce el verbo "Hablar" al quechua.', options: ['Rimay', 'Mikhuy', 'Puñuy', 'Ukyay'], correct: 'Rimay' },
+                { prompt: '¿Qué acción representa el verbo "Puriy"?', options: ['Caminar / Andar', 'Saltar', 'Mirar', 'Escuchar'], correct: 'Caminar / Andar' },
+                { prompt: 'En quechua, para decir "Yo como" (Ñuqa), ¿Cuál es la forma correcta?', options: ['Ñuqa mikhunki', 'Ñuqa mikhun', 'Ñuqa mikhuni', 'Ñuqa mikhuy'], correct: 'Ñuqa mikhuni' },
+                { prompt: 'Para decir "Tú comes" (Qam), el verbo termina en "-nki". Por lo tanto, se dice "Qam mikhun____".', options: ['ni', 'n', 'ki', 'y'], correct: 'ki' },
+                { prompt: 'Si queremos decir "Él/Ella duerme" (Pay), ¿Cómo se diría?', options: ['Pay puñuni', 'Pay puñun', 'Pay puñunki', 'Pay puñuy'], correct: 'Pay puñun' },
+                { prompt: 'Traduce la frase "Yo trabajo" al quechua.', options: ['Ñuqa llank\'ani', 'Pay llank\'an', 'Qam llank\'anki', 'Ñuqa purini'], correct: 'Ñuqa llank\'ani' },
+                { prompt: 'Sabiendo que "T\'anta" es pan, ¿cómo se dice "Yo como pan"?', options: ['Mikhuni ñuqa t\'anta', 'Ñuqa t\'antata mikhuni', 'T\'anta mikhuni ñuqa', 'Ñuqa mikhuni t\'antata'], correct: 'Ñuqa t\'antata mikhuni' },
+                { prompt: 'Relaciona el alimento "Aycha" con su traducción.', options: ['Agua', 'Piedra', 'Carne', 'Pan'], correct: 'Carne' },
+                { prompt: '"Pay yakuta _______" (Él/Ella bebe agua). Escribe el verbo Ukyay conjugado.', options: ['Ukyani', 'Ukyanki', 'Ukyan', 'Ukyay'], correct: 'Ukyan' },
+                { prompt: '¿Qué significa la oración "Qam munanki"?', options: ['Yo quiero', 'Él quiere', 'Tú quieres', 'Nosotros queremos'], correct: 'Tú quieres' },
+                { prompt: 'Une la palabra interrogativa "Ima?" con su significado.', options: ['¿Dónde?', '¿Qué?', '¿Quién?', '¿Cuándo?'], correct: '¿Qué?' },
+                { prompt: '¿Qué estás preguntando si dices "¿Iman sutiyki?"?', options: ['¿Cómo estás?', '¿Dónde vives?', '¿Cuántos años tienes?', '¿Cómo te llamas?'], correct: '¿Cómo te llamas?' },
+                { prompt: 'Si quieres responder "Mi nombre es...", la primera palabra es:', options: ['Qam', 'Pay', 'Sutiyqa', 'Allin'], correct: 'Sutiyqa' },
+                { prompt: 'La pregunta "¿Maymantan kanki?" significa:', options: ['¿De dónde eres?', '¿A dónde vas?', '¿Qué estás haciendo?', '¿Quién eres?'], correct: '¿De dónde eres?' },
+                { prompt: 'El saludo "¿Allillanchu?" viene de "Allin". ¿Qué significa "Allin"?', options: ['Mal', 'Bien / Bueno', 'Cansado', 'Triste'], correct: 'Bien / Bueno' },
+                { prompt: 'Para responder "Sí, estoy bien", se dice "Arí, ________mi kani".', options: ['Allillan', 'Manan', 'Munay', 'Tuta'], correct: 'Allillan' },
+                { prompt: 'En quechua el adjetivo va antes del sustantivo. ¿Cómo dirías "Perro grande"?', options: ['Allqu hatun', 'Hatun allqu', 'Huch\'uy allqu', 'Allqu huch\'uy'], correct: 'Hatun allqu' }
+            ],
+            selva1: [
+                { prompt: 'Un amigo asháninka te invita comida deliciosa. Para decirle "Gracias" usas:', options: ['Naro', 'Pasonki', 'Ina', 'Niya'], correct: 'Pasonki' },
+                { prompt: 'Verdadero o Falso: El pronombre "Naro" significa "Tú".', options: ['Verdadero', 'Falso'], correct: 'Falso' },
+                { prompt: 'Si "Naro" es "Yo"... para decirle "Tú" a tu amigo usas "____ro".', options: ['Avi', 'Pason', 'Tsina', 'Mava'], correct: 'Avi' },
+                { prompt: 'Relaciona "Pasonki" con su significado.', options: ['Yo', 'Tú', 'Gracias', 'Hola'], correct: 'Gracias' },
+                { prompt: 'En la comunidad ves mujeres trabajando. ¿Cómo se dice "Mujer" en asháninka?', options: ['Shirampari', 'Otsi', 'Tsinane', 'Panko'], correct: 'Tsinane' },
+                { prompt: 'Si "Tsinane" es mujer, ¿qué significa "Shirampari"?', options: ['Hombre', 'Árbol', 'Fuego', 'Río'], correct: 'Hombre' },
+                { prompt: 'A los niños y niñas pequeñas se les dice:', options: ['Eentsi', 'Apa', 'Patsiri', 'Maniti'], correct: 'Eentsi' },
+                { prompt: 'Une la palabra "Ina" con su equivalente cariñoso.', options: ['Mamá / Madre', 'Papá / Padre', 'Abuelo', 'Hijo'], correct: 'Mamá / Madre' },
+                { prompt: 'Tienes sed después de caminar por la selva. Pides "Agua" diciendo:', options: ['Paama', 'Niya', 'Kashiri', 'Mava'], correct: 'Niya' },
+                { prompt: 'Relaciona "Patsiri" con su significado estelar.', options: ['Luna', 'Sol', 'Estrella', 'Nube'], correct: 'Sol' },
+                { prompt: 'Verdadero o Falso: Para calentarse, los asháninkas encienden una "Paama" (Fuego).', options: ['Verdadero', 'Falso'], correct: 'Verdadero' },
+                { prompt: 'Tu hogar, tu "Casa", se dice en asháninka:', options: ['Panko', 'Niya', 'Otsi', 'Apa'], correct: 'Panko' },
+                { prompt: 'El mejor amigo del hombre siempre está presente. Al "Perro" se le llama:', options: ['Maniti', 'Tsimiri', 'Otsi', 'Niya'], correct: 'Otsi' },
+                { prompt: 'Ves volar un ave hermosa. A cualquier "Ave" se le llama Tsi____ri.', options: ['ma', 'mi', 'pa', 'na'], correct: 'mi' },
+                { prompt: 'El felino más respetado es el Jaguar. ¿Cómo se dice Jaguar en asháninka?', options: ['Maniti', 'Panko', 'Apa', 'Kashiri'], correct: 'Maniti' },
+                { prompt: 'Une al animal "Tsimiri" con su nombre en español.', options: ['Jaguar', 'Ave / Pájaro', 'Perro', 'Pez'], correct: 'Ave / Pájaro' },
+                { prompt: 'Conoce los números. ¿Qué significa "Aparo"?', options: ['Dos', 'Tres', 'Uno', 'Cuatro'], correct: 'Uno' },
+                { prompt: 'Si tienes Aparo (1) manzana y te regalan Apite (2) más. ¿Cuántas tienes? (Usa asháninka)', options: ['Aparo', 'Apite', 'Mava', 'Panko'], correct: 'Mava' },
+                { prompt: '¿Cómo se dice el número "Uno" en asháninka?', options: ['Aparo', 'Apite', 'Mava', 'Naro'], correct: 'Aparo' },
+                { prompt: 'Verdadero o Falso: La palabra "Mava" representa el número 3.', options: ['Verdadero', 'Falso'], correct: 'Verdadero' }
+            ],
+            costa1: [
+                { prompt: 'Te encuentras con tu mejor amigo limeño. ¿Cómo lo saludas?', options: ['Habla, tombo', 'Habla, causa', 'Habla, churre', 'Habla, luquita'], correct: 'Habla, causa' },
+                { prompt: 'Verdadero o Falso: Si eres su "yunta", eres su enemigo.', options: ['Verdadero', 'Falso'], correct: 'Falso' },
+                { prompt: 'A tu grupo de amigos más cercanos se le conoce como tu "________".', options: ['Batería', 'Guitarra', 'Cajón', 'Salsa'], correct: 'Batería' },
+                { prompt: 'Relaciona la palabra "Chocho" en el norte.', options: ['Amigo cercano', 'Amigo en general', 'Amigo (mayor o norteño)', 'Enemigo'], correct: 'Amigo (mayor o norteño)' },
+                { prompt: 'Si te invitan a una "Jarana", ¿a qué vas a ir?', options: ['Pelea', 'Reunión formal', 'Fiesta alegre con música criolla', 'A dormir'], correct: 'Fiesta alegre con música criolla' },
+                { prompt: 'Una fiesta buenísima se dice que es de "De rompe y ______".', options: ['raja', 'baila', 'salta', 'canta'], correct: 'raja' },
+                { prompt: 'Instrumento de percusión afroperuano, forma de caja de madera.', options: ['Cajón', 'Guapeo', 'Cumanana', 'Guitarra'], correct: 'Cajón' },
+                { prompt: 'En un festejo alguien grita: "¡Agua!". ¿Qué significa?', options: ['Incendio', 'Fin de fiesta', 'Expresión de alegría/sabor', 'Sed'], correct: 'Expresión de alegría/sabor' },
+                { prompt: 'En Piura ves a un niño. ¿Cómo se le dice "niño" en la jerga del norte?', options: ['Chibolo', 'Churre', 'Chavo', 'Chamo'], correct: 'Churre' },
+                { prompt: 'Si alguien es muy atractivo(a), se dice que está "________".', options: ['Churro / Churra', 'Dulce', 'Guapo(a)', 'Lindo(a)'], correct: 'Churro / Churra' },
+                { prompt: 'Un amigo piurano exclama: "¡Gua!". ¿Qué emoción transmite?', options: ['Tristeza', 'Asombro / Sorpresa', 'Sueño', 'Hambre'], correct: 'Asombro / Sorpresa' },
+                { prompt: 'Verdadero o Falso: "Pitear" significa quejarse o reclamar.', options: ['Verdadero', 'Falso'], correct: 'Verdadero' },
+                { prompt: 'No puedes ir a comer porque "estás misio". ¿Qué significa?', options: ['Lleno', 'Enfermo', 'Sin dinero / plata', 'Con trabajo'], correct: 'Sin dinero / plata' },
+                { prompt: 'A la moneda de Un Sol (S/ 1.00) se le dice una "________".', options: ['China', 'Quina', 'Luca', 'Ferro'], correct: 'Luca' },
+                { prompt: '¿Qué significa la palabra "Chamba"?', options: ['Moneda 10 céntimos', 'Trabajo o empleo', 'Moneda 50 céntimos', 'Descanso'], correct: 'Trabajo o empleo' },
+                { prompt: 'Pides un poco más sin cobrarte extra. A ese regalito se le llama "La ______".', options: ['Yapa', 'Ganga', 'Suma', 'Fija'], correct: 'Yapa' },
+                { prompt: 'Si un amigo te dice: "Llego al toque", ¿cuándo llega?', options: ['Mañana', 'En horas', 'Inmediatamente', 'Nunca'], correct: 'Inmediatamente' },
+                { prompt: 'Dices: "Ya me voy a mi jato". ¿A dónde vas?', options: ['A tu casa', 'Al trabajo', 'A comprar', 'Al hospital'], correct: 'A tu casa' },
+                { prompt: 'Une la acción "Jatear" con su significado.', options: ['Caminar', 'Bailar', 'Dormir', 'Comer'], correct: 'Dormir' },
+                { prompt: 'Alguien te miente descaradamente. Le dices: "¡A mí no me metas ______!"', options: ['Cuento', 'Floro', 'Letra', 'Mentira'], correct: 'Floro' }
+            ],
+            popquiz: [
+                { prompt: '[Modo Debugger] En la frase: "El saludo Allin tuta se usa cuando sale el sol", ¿dónde está el bug?', options: ['Allin', 'tuta', 'se usa', 'sol'], correct: 'tuta' },
+                { prompt: '[Combo Breaker] Huk, Iskay, Kimsa, Yaku. ¿Quién rompe el combo numérico?', options: ['Huk', 'Iskay', 'Kimsa', 'Yaku'], correct: 'Yaku' },
+                { prompt: '[Speedrun] Traduce rápido: "Perro".', options: ['Michi', 'Allqu', 'Wawa', 'Yaku'], correct: 'Allqu' },
+                { prompt: '[Gacha Pull] Eres una persona mayor, respetada. Te dicen "Padre o Señor". ¿Qué palabra eres?', options: ['Mama', 'Wawa', 'Tayta', 'Warmi'], correct: 'Tayta' },
+                { prompt: '[Matchmaking] Warmi es a Qari :: como Mama es a...', options: ['Wawa', 'Tayta', 'Allqu', 'Inti'], correct: 'Tayta' },
+                { prompt: '[QTE] Completa el despido: Tupananchis...', options: ['kama', 'manta', 'lla', 'paq'], correct: 'kama' },
+                { prompt: '[Simulador de Diálogo] Te hacen un inmenso favor. ¿Qué palabra usas?', options: ['Arí', 'Añay', 'Manan', 'Yaku'], correct: 'Añay' },
+                { prompt: '[Cifrado] Descifra el número 5: S A P Q I', options: ['Pasqi', 'Pisqa', 'Siqpa', 'Isqap'], correct: 'Pisqa' },
+                { prompt: '[Easter Egg] "Killa" tiene doble significado: en el cielo y en el calendario.', options: ['Estrella y Año', 'Luna y Mes', 'Sol y Día', 'Nube y Semana'], correct: 'Luna y Mes' },
+                { prompt: '[Boss Fight] "Yo" + "Tres" + "Gatos".', options: ['Ñuqa, Kimsa, Michi', 'Pay, Tawa, Allqu', 'Qam, Iskay, Michi', 'Ñuqa, Huk, Wawa'], correct: 'Ñuqa, Kimsa, Michi' },
+                { prompt: '[Modo Debugger] "Para decir Él duerme es Pay puñunki". ¡Corrige el bug!', options: ['Pay', 'puñu', 'nki (Debe ser n)', 'puñunki'], correct: 'nki (Debe ser n)' },
+                { prompt: '[Combo Breaker] Mikhuy, Puñuy, Ukyay, Rumi. ¿Cuál sobra?', options: ['Mikhuy', 'Puñuy', 'Ukyay', 'Rumi'], correct: 'Rumi' },
+                { prompt: '[Speedrun] Traduce rápido el verbo: "Caminar".', options: ['Puriy', 'Llank\'ay', 'Munay', 'Rimay'], correct: 'Puriy' },
+                { prompt: '[Gacha Pull] Soy la palabra al inicio para "¿Cómo te llamas?".', options: ['Arí', 'Sutiyqa', 'Pay', 'Manan'], correct: 'Sutiyqa' },
+                { prompt: '[Matchmaking] Mikhuy es a T\'anta :: como Ukyay es a...', options: ['Rumi', 'Aycha', 'Yaku', 'Para'], correct: 'Yaku' },
+                { prompt: '[QTE] Responde "¿Allillanchu?": "Arí, ______mi kani".', options: ['Allillan', 'Manan', 'Tuta', 'Munay'], correct: 'Allillan' },
+                { prompt: '[Simulador de Diálogo] Pregunta: "¿De dónde eres?".', options: ['¿Iman sutiyki?', '¿Maymantan kanki?', '¿Allillanchu?', '¿Pi kanki?'], correct: '¿Maymantan kanki?' },
+                { prompt: '[Cifrado] Descifra el verbo trabajar: K \' A L L Y N A', options: ['Kallpany', 'Llank\'ay', 'Yallk\'an', 'Nallk\'ay'], correct: 'Llank\'ay' },
+                { prompt: '[Easter Egg] ¿Por qué los verbos base siempre terminan en una misma letra? ¿Cuál es?', options: ['A', 'N', 'Y', 'I'], correct: 'Y' },
+                { prompt: '[Boss Fight] Ordena: "Yo como carne" (aychata / mikhuni / Ñuqa)', options: ['Ñuqa mikhuni aychata', 'Aychata Ñuqa mikhuni', 'Ñuqa aychata mikhuni', 'Mikhuni aychata Ñuqa'], correct: 'Ñuqa aychata mikhuni' },
+                { prompt: '[Modo Debugger] "Para Gracias, un asháninka dice Naro". Corrige.', options: ['Gracias', 'asháninka', 'dice', 'Naro (Debe ser Pasonki)'], correct: 'Naro (Debe ser Pasonki)' },
+                { prompt: '[Combo Breaker] Aparo, Apite, Panko, Mava. ¿Cuál rompe la racha?', options: ['Aparo', 'Apite', 'Panko', 'Mava'], correct: 'Panko' },
+                { prompt: '[Speedrun] Traduce rápido: "Mujer" (Asháninka).', options: ['Shirampari', 'Tsinane', 'Eentsi', 'Ina'], correct: 'Tsinane' },
+                { prompt: '[Gacha Pull] El felino más imponente de la selva. En asháninka me dicen...', options: ['Otsi', 'Tsimiri', 'Maniti', 'Niya'], correct: 'Maniti' },
+                { prompt: '[Matchmaking] Ina es a Madre :: como Apa es a...', options: ['Hijo', 'Padre / Papá', 'Abuelo', 'Tío'], correct: 'Padre / Papá' },
+                { prompt: '[QTE] Completa la palabra para "Ave": Tsi____ri.', options: ['ma', 'mi', 'na', 'pa'], correct: 'mi' },
+                { prompt: '[Simulador de Diálogo] Quieres un vaso de "Agua" (Asháninka). ¿Qué pides?', options: ['Paama', 'Niya', 'Kashiri', 'Mava'], correct: 'Niya' },
+                { prompt: '[Cifrado] Descifra la palabra para Casa: O P A K N', options: ['Nopak', 'Panko', 'Kopan', 'Aknop'], correct: 'Panko' },
+                { prompt: '[Easter Egg] Kashiri (Luna) y Patsiri (Sol). ¿Qué comparten en la cosmovisión?', options: ['Son agua', 'Son astros (Luz)', 'Son animales', 'Son comida'], correct: 'Son astros (Luz)' },
+                { prompt: '[Boss Fight] Suma asháninka: Aparo + Apite = ?', options: ['Mava', 'Panko', 'Otsi', 'Naro'], correct: 'Mava' },
+                { prompt: '[Modo Debugger] "Estar misio significa que acabas de cobrar". Corrige el bug.', options: ['misio (Significa sin plata)', 'acabas', 'cobrar', 'significa'], correct: 'misio (Significa sin plata)' },
+                { prompt: '[Combo Breaker] Luca, Quina, Ferro, Chamba. ¿Cuál no es dinero?', options: ['Luca', 'Quina', 'Ferro', 'Chamba'], correct: 'Chamba' },
+                { prompt: '[Speedrun] ¿Cómo se dice "dormir" en la calle limeña?', options: ['Latear', 'Tonear', 'Jatear', 'Mancor'], correct: 'Jatear' },
+                { prompt: '[Gacha Pull] Niño corriendo por Piura, le llaman...', options: ['Chibolo', 'Churre', 'Pata', 'Causa'], correct: 'Churre' },
+                { prompt: '[Matchmaking] Jatear es a Cama :: como Tonear es a...', options: ['Comida', 'Fiesta / Jarana', 'Trabajo', 'Estudio'], correct: 'Fiesta / Jarana' },
+                { prompt: '[QTE] Completa el grito de jarana: "De rompe y..."', options: ['quiebra', 'raja', 'salta', 'baila'], correct: 'raja' },
+                { prompt: '[Simulador de Diálogo] Te mienten. Dices: "¡A mí no me metas...!"', options: ['floro', 'cuento', 'letra', 'papaya'], correct: 'floro' },
+                { prompt: '[Cifrado] Descifra tu grupo de amigos: T A E R A I B', options: ['Baratei', 'Batería', 'Tibaera', 'Abietar'], correct: 'Batería' },
+                { prompt: '[Easter Egg] El "Cajón" es afroperuano, ¿qué es la "Cumanana" del norte?', options: ['Comida', 'Canto en verso improvisado', 'Baile', 'Bebida'], correct: 'Canto en verso improvisado' },
+                { prompt: '[Boss Fight] Traduce: "Habla causa, voy a latear hasta mi jato".', options: ['Hola amigo, voy a caminar hasta mi casa', 'Adiós, me voy a dormir', 'Oye, vamos a la fiesta', 'Amigo, no tengo dinero'], correct: 'Hola amigo, voy a caminar hasta mi casa' },
+                { prompt: '[Matchmaking] Yaku (Q) es a Agua :: como Niya (A) es a...', options: ['Tierra', 'Fuego', 'Agua', 'Aire'], correct: 'Agua' },
+                { prompt: '[Combo Breaker] Añay, Pasonki, Yapa, Gracias. ¿Cuál no es agradecimiento?', options: ['Añay', 'Pasonki', 'Yapa', 'Gracias'], correct: 'Yapa' },
+                { prompt: '[Speedrun] Moneda de un sol (Jerga).', options: ['China', 'Luca', 'Quina', 'Ferro'], correct: 'Luca' },
+                { prompt: '[Gacha Pull] Soy el extra que da la casera gratis.', options: ['Floro', 'Yapa', 'Chamba', 'Pata'], correct: 'Yapa' },
+                { prompt: '[Modo Debugger] "El adjetivo Hatun significa pequeño". Corrige.', options: ['Hatun (Significa Grande)', 'adjetivo', 'significa', 'pequeño'], correct: 'Hatun (Significa Grande)' },
+                { prompt: '[QTE] Al amigo inseparable se le dice: "Mi yun..."', options: ['ta', 'ca', 'ra', 'ma'], correct: 'ta' },
+                { prompt: '[Simulador de Diálogo] En Piura ves algo asombroso. ¿Qué usas?', options: ['¡Ala!', '¡Gua!', '¡Asu!', '¡Che!'], correct: '¡Gua!' },
+                { prompt: '[Cifrado] Descifra "Tú" en asháninka: O R I A V', options: ['Vario', 'Aviro', 'Rovia', 'Irova'], correct: 'Aviro' },
+                { prompt: '[Easter Egg] ¿Qué tienen en común Wawa (Q) y Eentsi (A)?', options: ['Son animales', 'Ambas significan niño/bebé', 'Son comida', 'Son números'], correct: 'Ambas significan niño/bebé' },
+                { prompt: '[Boss Fight] Idiomas de: 1.Tayta, 2.Otsi, 3.Churro, 4.Llank\'ay', options: ['1.Quechua, 2.Asháninka, 3.Costa, 4.Quechua', 'Todos Quechua', 'Todos Costa', '1.Costa, 2.Selva, 3.Selva, 4.Sierra'], correct: '1.Quechua, 2.Asháninka, 3.Costa, 4.Quechua' }
+            ]
+        };
+
+        const ArtifactsShop = [
+            { id: 'tumi', name: 'Tumi Mágico', region: 'sierra', tier: 1, cost: 15, icon: '🗿', desc: 'Cuchillo ceremonial inca. Símbolo de sanación.' },
+            { id: 'chakana', name: 'Chakana', region: 'sierra', tier: 2, cost: 25, icon: '💠', desc: 'Cruz Andina. Conecta los tres mundos incas.' },
+            { id: 'quipu', name: 'Quipu', region: 'sierra', tier: 3, cost: 30, icon: '🧶', desc: 'Sistema de cuerdas y nudos para contabilidad.' },
+            
+            { id: 'huaco', name: 'Huaco Moche', region: 'costa', tier: 1, cost: 15, icon: '🏺', desc: 'Vasija retrato hiperrealista de la costa norte.' },
+            { id: 'cuchimilco', name: 'Cuchimilco', region: 'costa', tier: 2, cost: 25, icon: '🧍', desc: 'Estatuilla Chancay con los brazos abiertos.' },
+            { id: 'sican', name: 'Máscara Sicán', region: 'costa', tier: 3, cost: 30, icon: '🎭', desc: 'Máscara de oro puro del señor de Sipán/Sicán.' },
+            
+            { id: 'kene', name: 'Diseño Kené', region: 'selva', tier: 1, cost: 15, icon: '🌀', desc: 'Patrón geométrico Shipibo que representa ríos.' },
+            { id: 'corona', name: 'Corona Plumas', region: 'selva', tier: 2, cost: 25, icon: '👑', desc: 'Tocado ceremonial Asháninka.' },
+            { id: 'pucuna', name: 'Pucuna', region: 'selva', tier: 3, cost: 30, icon: '🎋', desc: 'Zarbatana tradicional para caza silenciosa.' }
+        ];
+
+        const GameState = {
+            name: localStorage.getItem('yr_name') || '',
+            stars: parseInt(localStorage.getItem('yr_stars') || '0'),
+            inventory: JSON.parse(localStorage.getItem('yr_inv') || '[]'),
+            progress: JSON.parse(localStorage.getItem('yr_prog') || '{"sierra1":false, "sierra2":false, "selva1":false, "costa1":false}'),
+            
+            save() {
+                localStorage.setItem('yr_name', this.name);
+                localStorage.setItem('yr_stars', this.stars);
+                localStorage.setItem('yr_inv', JSON.stringify(this.inventory));
+                localStorage.setItem('yr_prog', JSON.stringify(this.progress));
+            },
+            unlockLevel(lvl) { this.progress[lvl] = true; this.save(); },
+            buyArtifact(id, cost) {
+                if(this.stars >= cost && !this.inventory.includes(id)) {
+                    this.stars -= cost;
+                    this.inventory.push(id);
+                    this.save();
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        const App = {
+            container: document.getElementById('app'),
+            currentRegion: null,
+            currentLevel: null,
+            missionQueue: [],
+            correctCount: 0,
+            totalQuestions: 0,
+            timerInterval: null,
+            
+            init() {
+                if(GameState.name) this.showRegionSelector();
+                else this.showOnboarding();
+            },
+            
+            shuffle(array) {
+                let m = array.length, t, i;
+                while (m) {
+                    i = Math.floor(Math.random() * m--);
+                    t = array[m];
+                    array[m] = array[i];
+                    array[i] = t;
+                }
+                return array;
+            },
+            
+            showOnboarding() {
+                this.container.innerHTML = `
+                    <div class="flex items-center justify-center h-full w-full fade-in p-4 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                        <div class="bg-slate-800/90 backdrop-blur p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-700 text-center">
+                            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-2">Yachay Runa</h1>
+                            <p class="text-slate-400 text-sm mb-6">Tu aventura cultural empieza aquí</p>
+                            <input type="text" id="username" placeholder="Tu nombre..." class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 mb-4 outline-none">
+                            <button id="btn-start" class="w-full bg-gradient-to-r from-emerald-500 to-cyan-600 hover:scale-105 text-white font-bold py-3 px-4 rounded-lg transition-transform">Comenzar</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('btn-start').onclick = () => {
+                    const n = document.getElementById('username').value.trim();
+                    if(n) { GameState.name = n; GameState.save(); this.showRegionSelector(); }
+                };
+            },
+            
+            showRegionSelector() {
+                clearInterval(this.timerInterval);
+                this.container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full w-full p-6 fade-in relative bg-slate-900 overflow-y-auto">
+                        <div class="absolute top-4 right-4 bg-slate-800 px-4 py-2 rounded-full border border-yellow-500/50 flex items-center gap-2">
+                            <span class="text-yellow-400 font-bold">⭐ ${GameState.stars}</span>
+                            <span class="text-slate-300 text-sm">| ${GameState.name}</span>
+                        </div>
+                        <h2 class="text-3xl font-bold mb-8 mt-12 md:mt-0">Elige tu Región</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
+                            <button onclick="App.showMap('costa')" class="bg-gradient-to-br from-orange-500 to-red-600 p-8 rounded-2xl shadow-lg hover:scale-105 transition-transform text-left group">
+                                <h3 class="text-2xl font-bold mb-2">🌊 Costa</h3>
+                                <p class="text-sm opacity-80">Jergas y cultura afroperuana</p>
+                            </button>
+                            <button onclick="App.showMap('sierra')" class="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 rounded-2xl shadow-lg hover:scale-105 transition-transform text-left group">
+                                <h3 class="text-2xl font-bold mb-2">🏔️ Sierra</h3>
+                                <p class="text-sm opacity-80">Quechua e Imperio Inca</p>
+                            </button>
+                            <button onclick="App.showMap('selva')" class="bg-gradient-to-br from-green-600 to-lime-700 p-8 rounded-2xl shadow-lg hover:scale-105 transition-transform text-left group">
+                                <h3 class="text-2xl font-bold mb-2">🌴 Selva</h3>
+                                <p class="text-sm opacity-80">Asháninka y Amazonía</p>
+                            </button>
+                        </div>
+                        <button onclick="App.startLevel('popquiz')" class="mt-12 bg-gradient-to-r from-purple-600 to-pink-600 py-4 px-12 rounded-full shadow-[0_0_30px_rgba(168,85,247,0.5)] font-bold text-xl hover:scale-110 transition-transform animate-pulse border-2 border-pink-400">
+                            🔥 POP QUIZ ÉPICO 🔥
+                        </button>
+                    </div>
+                `;
+            },
+            
+            showMap(region) {
+                clearInterval(this.timerInterval);
+                this.currentRegion = region;
+                const rName = region.charAt(0).toUpperCase() + region.slice(1);
+                
+                let shopHTML = ArtifactsShop.filter(a => a.region === region).map(a => {
+                    const owned = GameState.inventory.includes(a.id);
+                    return `
+                        <div class="tooltip-container relative bg-slate-800 rounded-xl p-3 border-2 ${owned ? 'border-emerald-500' : 'border-slate-600'} text-center cursor-pointer hover:bg-slate-700 transition-colors" onclick="App.buyItem('${a.id}', ${a.cost})">
+                            <div class="text-4xl mb-1 ${owned ? '' : 'grayscale opacity-50'}">${a.icon}</div>
+                            <div class="text-xs font-bold ${owned ? 'text-emerald-400' : 'text-slate-400'}">${owned ? 'Obtenido' : '⭐ ' + a.cost}</div>
+                            <div class="tooltip bg-slate-900 text-white text-xs p-2 rounded border border-slate-600 shadow-xl mb-2 w-48 z-50">
+                                <strong>${a.name}</strong><br>${a.desc}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                this.container.innerHTML = `
+                    <div class="flex-1 flex flex-col md:flex-row h-full w-full fade-in">
+                        <aside class="w-full md:w-80 bg-slate-900 border-r border-slate-800 p-6 flex flex-col z-20 shadow-2xl overflow-y-auto">
+                            <button onclick="App.showRegionSelector()" class="text-slate-400 hover:text-white mb-6 text-sm flex items-center gap-2 font-bold">← Volver al Selector</button>
+                            <div class="flex items-center gap-4 mb-8 bg-slate-800 p-4 rounded-xl border border-slate-700">
+                                <div>
+                                    <p class="text-xs text-slate-400 uppercase">Tus Estrellas</p>
+                                    <h2 class="text-2xl font-bold text-yellow-400">⭐ ${GameState.stars}</h2>
+                                </div>
+                            </div>
+                            <h3 class="text-sm text-slate-400 font-semibold uppercase mb-4">Tienda de ${rName}</h3>
+                            <div class="grid grid-cols-2 gap-4 flex-1">${shopHTML}</div>
+                        </aside>
+                        
+                        <main class="flex-1 map-bg relative overflow-hidden flex flex-col items-center justify-center p-8">
+                            <h2 class="absolute top-8 text-2xl font-extrabold text-white drop-shadow-lg text-center w-full z-10">Ruta de la ${rName}</h2>
+                            <div class="relative w-full max-w-md aspect-square flex flex-col items-center justify-center gap-12 mt-12">
+                                ${this.renderMapNodes(region)}
+                            </div>
+                        </main>
+                    </div>
+                `;
+            },
+            
+            renderMapNodes(region) {
+                if(region === 'sierra') {
+                    return `
+                        <button onclick="App.startLevel('sierra1')" class="w-20 h-20 rounded-full bg-slate-800 border-4 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)] text-3xl flex items-center justify-center z-10 hover:scale-110 transition-transform">🏔️</button>
+                        <div class="w-2 h-12 bg-emerald-500/30 -my-14"></div>
+                        <button onclick="${GameState.progress['sierra1'] ? "App.startLevel('sierra2')" : ""}" class="w-20 h-20 rounded-full bg-slate-800 border-4 ${GameState.progress['sierra1'] ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-slate-600 opacity-50'} text-3xl flex items-center justify-center z-10 transition-transform hover:scale-110">🦙</button>
+                        <div class="w-2 h-12 bg-emerald-500/30 -my-14"></div>
+                        <div class="w-20 h-20 rounded-full bg-slate-800 border-4 border-slate-600 opacity-50 text-xs font-bold z-10 flex items-center justify-center text-slate-400 text-center leading-tight">Próximamente</div>
+                    `;
+                } else if(region === 'costa') {
+                    return `
+                        <button onclick="App.startLevel('costa1')" class="w-20 h-20 rounded-full bg-slate-800 border-4 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.5)] text-3xl flex items-center justify-center z-10 hover:scale-110 transition-transform">🌊</button>
+                        <div class="w-2 h-12 bg-cyan-500/30 -my-14"></div>
+                        <div class="w-20 h-20 rounded-full bg-slate-800 border-4 border-slate-600 opacity-50 text-xs font-bold z-10 flex items-center justify-center text-slate-400 text-center leading-tight">Próximamente</div>
+                    `;
+                } else if(region === 'selva') {
+                    return `
+                        <button onclick="App.startLevel('selva1')" class="w-20 h-20 rounded-full bg-slate-800 border-4 border-lime-500 shadow-[0_0_20px_rgba(132,204,22,0.5)] text-3xl flex items-center justify-center z-10 hover:scale-110 transition-transform">🌴</button>
+                        <div class="w-2 h-12 bg-lime-500/30 -my-14"></div>
+                        <div class="w-20 h-20 rounded-full bg-slate-800 border-4 border-slate-600 opacity-50 text-xs font-bold z-10 flex items-center justify-center text-slate-400 text-center leading-tight">Próximamente</div>
+                    `;
+                }
+            },
+            
+            buyItem(id, cost) {
+                if(GameState.inventory.includes(id)) return;
+                if(GameState.buyArtifact(id, cost)) {
+                    this.showMap(this.currentRegion); 
+                } else {
+                    alert("¡Te faltan estrellas! Juega niveles o el Pop Quiz.");
+                }
+            },
+            
+            startLevel(levelId) {
+                this.currentLevel = levelId;
+                this.correctCount = 0;
+                
+                let db = [...QuestionDB[levelId]];
+                this.shuffle(db); // Real randomness
+                
+                let limit = levelId === 'popquiz' ? 10 : 8; // Pop Quiz limits strictly to 10!
+                if(db.length > limit) db = db.slice(0, limit);
+                
+                this.missionQueue = db;
+                this.totalQuestions = limit;
+                this.showNextQuestion();
+            },
+            
+            showNextQuestion() {
+                clearInterval(this.timerInterval);
+                if (this.missionQueue.length === 0) {
+                    this.showVictory();
+                    return;
+                }
+                
+                const q = this.missionQueue[0];
+                const p = q.prompt;
+                
+                let themeClass = '';
+                let extraUI = '';
+                let isTimer = false;
+                
+                if (p.includes('[Modo Debugger]')) { themeClass = 'theme-debugger'; extraUI = '<div class="text-xs mb-2">SYSTEM.ERROR_FOUND</div>'; }
+                else if (p.includes('[Boss Fight]')) { themeClass = 'theme-boss'; extraUI = '<div class="text-xs mb-2 animate-pulse">¡PELIGRO! TRADUCCIÓN INVERSA</div>'; }
+                else if (p.includes('[Speedrun]') || p.includes('[QTE]')) { themeClass = 'theme-speedrun'; isTimer = true; }
+                else if (p.includes('[Gacha Pull]') || p.includes('[Easter Egg]')) { themeClass = 'theme-gacha'; }
+                else if (p.includes('[Simulador de Diálogo]')) { themeClass = 'theme-dialogue'; extraUI = '<div class="text-xs mb-2 text-blue-400">WhatsApp - Nuevo Mensaje</div>'; }
+
+                let qText = p.replace(/\[.*?\]\s*/g, '');
+                let exitAction = this.currentLevel === 'popquiz' ? "App.showRegionSelector()" : "App.showMap(App.currentRegion)";
+                
+                let html = `
+                    <div class="flex-1 flex flex-col h-full w-full bg-slate-900 slide-up ${themeClass} relative">
+                        <!-- Top Navigation & Progress Bar -->
+                        <div class="w-full flex items-center justify-between p-4 bg-slate-900/80 backdrop-blur z-50 shadow-sm border-b border-slate-800">
+                            <button onclick="${exitAction}" class="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors font-bold text-xl">✕</button>
+                            
+                            <div class="flex-1 mx-4 bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
+                                <div class="bg-gradient-to-r from-emerald-400 to-cyan-400 h-full transition-all duration-300" style="width: ${(this.correctCount / this.totalQuestions) * 100}%"></div>
+                            </div>
+                            
+                            <span class="text-slate-400 font-bold font-mono text-sm">${this.correctCount}/${this.totalQuestions}</span>
+                        </div>
+                        
+                        ${isTimer ? `<div class="w-full h-1 bg-slate-800"><div id="timer-bar" class="h-full bg-cyan-400 timer-bar w-full"></div></div>` : ''}
+                        
+                        <div class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-3xl mx-auto overflow-y-auto">
+                            ${extraUI}
+                            <div class="${themeClass === 'theme-dialogue' ? 'chat-bubble p-6 mb-8 w-full' : 'bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl w-full text-center mb-8'}">
+                                <h3 class="text-2xl font-bold ${themeClass === 'theme-dialogue' ? 'text-white' : ''}">${qText}</h3>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full" id="options-container">
+                                ${this.shuffle([...q.options]).map(opt => `
+                                    <button class="opt-btn bg-slate-700 hover:bg-slate-600 border-2 border-slate-600 rounded-xl text-lg py-5 px-4 text-white font-medium transition-transform hover:-translate-y-1 active:translate-y-0" data-val="${opt}">${opt}</button>
+                                `).join('')}
+                            </div>
+                            
+                            <div id="feedback" class="mt-8 hidden w-full text-center font-bold text-lg px-6 py-4 rounded-xl shadow-lg"></div>
+                            <button id="btn-next" class="mt-6 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-12 rounded-full shadow-lg hidden">Continuar</button>
+                        </div>
+                    </div>
+                `;
+                
+                this.container.innerHTML = html;
+                
+                const btns = this.container.querySelectorAll('.opt-btn');
+                btns.forEach(btn => btn.onclick = (e) => this.checkAnswer(e.currentTarget, e.currentTarget.dataset.val, q.correct));
+
+                if(isTimer) {
+                    let w = 100;
+                    const tb = document.getElementById('timer-bar');
+                    this.timerInterval = setInterval(() => {
+                        w -= 10;
+                        tb.style.width = w + '%';
+                        if(w <= 30) tb.classList.add('bg-red-500');
+                        if(w <= 0) {
+                            clearInterval(this.timerInterval);
+                            this.checkAnswer(null, 'TIMEOUT', q.correct);
+                        }
+                    }, 1000);
+                }
+            },
+            
+            checkAnswer(btnObj, selectedStr, correctStr) {
+                clearInterval(this.timerInterval);
+                const isCorrect = selectedStr === correctStr;
+                const btns = this.container.querySelectorAll('.opt-btn');
+                btns.forEach(b => { b.disabled = true; b.classList.add('opacity-50', 'pointer-events-none'); });
+                
+                const f = document.getElementById('feedback');
+                const next = document.getElementById('btn-next');
+                
+                // Escudo protector: Si la vista ya se destruyó, detiene la función sin causar errores.
+                if (!f || !next) return;
+                
+                f.classList.remove('hidden');
+                next.classList.remove('hidden');
+                
+                if(isCorrect) {
+                    if(btnObj) btnObj.className = "opt-btn bg-emerald-600 border-2 border-emerald-400 rounded-xl text-lg py-5 px-4 text-white font-medium scale-105 shadow-[0_0_20px_rgba(16,185,129,0.5)]";
+                    
+                    let starText = this.currentLevel === 'popquiz' ? '<span class="text-yellow-400 ml-2 animate-bounce inline-block text-xl">+2 ⭐</span>' : '';
+                    f.innerHTML = `¡Respuesta Correcta! ✅ ${starText}`;
+                    f.className = "mt-8 w-full text-center font-bold text-lg px-6 py-4 rounded-xl shadow-lg bg-emerald-900/40 text-emerald-400 border border-emerald-500 flex items-center justify-center pop-in";
+                    
+                    this.correctCount++;
+                    this.missionQueue.shift(); 
+                    
+                    setTimeout(() => this.showNextQuestion(), 1200);
+                } else {
+                    if(btnObj) btnObj.className = "opt-btn bg-red-600 border-2 border-red-500 rounded-xl text-lg py-5 px-4 text-white font-medium shake-error";
+                    f.innerHTML = `Incorrecto ❌<br><span class="text-sm font-normal text-slate-300 mt-2 block">La respuesta correcta era: <strong class="text-white">${correctStr}</strong></span>`;
+                    f.className = "mt-8 w-full text-center font-bold text-lg px-6 py-4 rounded-xl shadow-lg bg-red-900/40 text-red-400 border border-red-500 block pop-in";
+                    
+                    const q = this.missionQueue.shift();
+                    this.missionQueue.push(q); // Spaced Repetition -> Goes to back of queue
+                    
+                    next.onclick = () => this.showNextQuestion();
+                }
+            },
+            
+            showVictory() {
+                let starsEarned = 0;
+                
+                if (this.currentLevel === 'popquiz') {
+                    // Because they finished, correctCount always equals totalQuestions (10). 10 * 2 = 20 stars!
+                    starsEarned = this.totalQuestions * 2; 
+                } else {
+                    starsEarned = 50;
+                    GameState.unlockLevel(this.currentLevel);
+                }
+                
+                GameState.stars += starsEarned;
+                GameState.save();
+                
+                this.container.innerHTML = `
+                    <div class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-900 fade-in h-full w-full relative">
+                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none"></div>
+                        <div class="text-7xl mb-6 animate-bounce relative z-10">🏆</div>
+                        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-2 text-center relative z-10">¡Misión Completada!</h1>
+                        <p class="text-slate-400 mb-8 relative z-10">Has dominado este nivel perfectamente.</p>
+                        
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-yellow-500/30 mb-8 flex flex-col items-center shadow-[0_0_30px_rgba(234,179,8,0.2)] pop-in relative z-10 min-w-[200px]">
+                            <span class="text-sm text-yellow-400/80 font-bold uppercase mb-2">Recompensa Obtenida</span>
+                            <span class="text-5xl font-black text-yellow-400">+${starsEarned} ⭐</span>
+                            ${this.currentLevel === 'popquiz' ? `<span class="text-xs text-slate-400 mt-2 font-mono bg-slate-900 px-3 py-1 rounded-full border border-slate-700">${this.totalQuestions} aciertos x 2 estrellas</span>` : ''}
+                        </div>
+                        
+                        <button id="btn-return" class="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold py-4 px-10 rounded-full shadow-lg hover:scale-110 transition-transform relative z-10 text-lg border-b-4 border-emerald-700 active:border-b-0 active:translate-y-1">
+                            Continuar Aventura
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('btn-return').onclick = () => {
+                    if(this.currentLevel === 'popquiz') this.showRegionSelector();
+                    else this.showMap(this.currentRegion);
+                };
+            }
+        };
+
+        // Iniciar App
+        App.init();
+    </script>
+</body>
+</html>
