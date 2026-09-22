@@ -1,4 +1,4 @@
-🌿 Yachay Runa - Gamified Language Learning Prototype
+🌿 Peruanizate
 
 ¡Bienvenido a Yachay Runa! Una aplicación web interactiva y gamificada diseñada para enseñar lenguas originarias del Perú (Quechua, Asháninka) y expresiones culturales de la Costa, utilizando mecánicas de retención similares a Duolingo.
 
